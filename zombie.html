@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zombie Survival Mobile</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background-color: #111;
+            color: white;
+            touch-action: none;
+            user-select: none;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background-color: #888;
+            transition: background-color 2s;
+            overflow: hidden;
+        }
+        
+        .night {
+            background-color: #333 !important;
+        }
+        
+        .blood-moon {
+            background-color: #550000 !important;
+        }
+        
+        .rain {
+            background-color: #444 !important;
+        }
+        
+        .eclipse {
+            background-color: #220022 !important;
+        }
+        
+        #player {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #3498db;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #3498db;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        
+        .zombie {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #2ecc71;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            transform: translate(-50%, -50%) rotate(0deg);
+            z-index: 5;
+            transition: all 0.3s;
+        }
+        
+        .zombie.night {
+            background-color: #ff3333;
+            filter: drop-shadow(0 0 15px #ff0000) brightness(1.5);
+        }
+        
+        .zombie.blood-moon {
+            background-color: #ff5555;
+            filter: drop-shadow(0 0 20px #ff0000) brightness(2);
+        }
+        
+        .zombie.eclipse {
+            background-color: #990099;
+            filter: drop-shadow(0 0 20px #990099) brightness(1.8);
+        }
+        
+        .bullet {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background-color: #f1c40f;
+            border-radius: 50%;
+            box-shadow: 0 0 5px #f1c40f;
+            transform: translate(-50%, -50%);
+            z-index: 8;
+        }
+        
+        .bonus {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 7;
+            animation: pulse 1s infinite;
+            box-shadow: 0 0 10px currentColor;
+        }
+        
+        .health-bonus {
+            background-color: #e74c3c;
+            color: #e74c3c;
+        }
+        
+        .ammo-bonus {
+            background-color: #f39c12;
+            color: #f39c12;
+        }
+        
+        .shield-bonus {
+            background-color: #3498db;
+            color: #3498db;
+        }
+        
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 20;
+            gap: 10px;
+        }
+        
+        .hud-panel {
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(50,50,50,0.6) 100%);
+            border-radius: 10px;
+            padding: 12px 18px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .hud-title {
+            font-size: 12px;
+            color: #ddd;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .hud-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 5px rgba(255,255,255,0.3);
+        }
+        
+        #healthBar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        #healthBarFill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #e74c3c, #f39c12);
+            border-radius: 3px;
+            transition: width 0.3s;
+            box-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
+        }
+        
+        #timeIndicator {
+            position: absolute;
+            top: 80px;
+            right: 15px;
+            z-index: 20;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(50,50,50,0.6) 100%);
+            padding: 10px 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        #timeIndicator.night {
+            color: #ff5555;
+            text-shadow: 0 0 15px #ff0000;
+            border-color: rgba(255,0,0,0.3);
+        }
+        
+        #timeIndicator.blood-moon {
+            color: #ff0000;
+            text-shadow: 0 0 20px #ff0000;
+            animation: bloodPulse 1s infinite;
+            border-color: rgba(255,0,0,0.5);
+        }
+        
+        #timeIndicator.rain {
+            color: #3498db;
+            text-shadow: 0 0 15px #3498db;
+            border-color: rgba(52,152,219,0.3);
+        }
+        
+        #timeIndicator.eclipse {
+            color: #990099;
+            text-shadow: 0 0 15px #990099;
+            border-color: rgba(153,0,153,0.3);
+        }
+        
+        @keyframes bloodPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        #dayCounter {
+            position: absolute;
+            top: 120px;
+            right: 15px;
+            z-index: 20;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(50,50,50,0.6) 100%);
+            padding: 10px 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        #shieldIndicator {
+            position: absolute;
+            top: 160px;
+            right: 15px;
+            z-index: 20;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(50,50,50,0.6) 100%);
+            padding: 10px 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            display: none;
+        }
+        
+        #mobileControls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 20;
+        }
+        
+        #joystickArea {
+            position: absolute;
+            left: 20px;
+            bottom: 20px;
+            width: 120px;
+            height: 120px;
+            z-index: 15;
+        }
+        
+        #actionArea {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            display: flex;
+            gap: 20px;
+            z-index: 15;
+        }
+        
+        .mobile-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            touch-action: manipulation;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.25);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        
+        .mobile-btn:active {
+            background: rgba(255,255,255,0.3);
+            transform: scale(0.95);
+        }
+        
+        #joystick {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.25);
+            display: none;
+        }
+        
+        #joystickKnob {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+        
+        #startScreen, #gameOverScreen, #victoryScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            backdrop-filter: blur(10px);
+        }
+        
+        #gameOverScreen, #victoryScreen {
+            display: none;
+        }
+        
+        .screen-content {
+            background: linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(50,50,50,0.8) 100%);
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            border: none;
+            color: white;
+            padding: 14px 30px;
+            margin: 20px 10px 0;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+        }
+        
+        h1 {
+            color: #e74c3c;
+            margin-top: 0;
+            text-shadow: 0 0 15px rgba(231, 76, 60, 0.7);
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            color: #3498db;
+            margin-top: 0;
+            text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+        
+        p {
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer" tabindex="0">
+        <div id="player"></div>
+        <div id="joystick">
+            <div id="joystickKnob"></div>
+        </div>
+        
+        <div id="hud">
+            <div class="hud-panel">
+                <div class="hud-title">Здоровье</div>
+                <div class="hud-value"><span id="health">100</span>/<span id="maxHealth">100</span></div>
+                <div id="healthBar">
+                    <div id="healthBarFill"></div>
+                </div>
+            </div>
+            
+            <div class="hud-panel">
+                <div class="hud-title">Патроны</div>
+                <div class="hud-value"><span id="ammo">18</span>/∞</div>
+            </div>
+            
+            <div class="hud-panel">
+                <div class="hud-title">Убийств</div>
+                <div class="hud-value" id="kills">0</div>
+            </div>
+        </div>
+        
+        <div id="timeIndicator">День</div>
+        <div id="dayCounter">День: 1</div>
+        <div id="shieldIndicator">Щит: 0с</div>
+        
+        <div id="mobileControls">
+            <div id="joystickArea"></div>
+            <div id="actionArea">
+                <div class="mobile-btn" id="shootBtn">🔫</div>
+                <div class="mobile-btn" id="reloadBtn">↻</div>
+            </div>
+        </div>
+        
+        <div id="startScreen">
+            <div class="screen-content">
+                <h1>ZOMBIE SURVIVAL MOBILE</h1>
+                <p>Выживи 10 дней против орд зомби!</p>
+                <p><strong>Управление:</strong> Джойстик слева - движение, кнопки справа - стрельба/перезарядка</p>
+                <p>Ночью зомби становятся сильнее и светятся красным!</p>
+                <p>На 5 день наступает Кровавая Луна - будь осторожен!</p>
+                <button id="startBtn">Начать игру</button>
+            </div>
+        </div>
+        
+        <div id="gameOverScreen">
+            <div class="screen-content">
+                <h1>Конец игры</h1>
+                <p>Вы убили <span id="finalKills">0</span> зомби</p>
+                <p>Выжили <span id="finalDays">0</span> дней</p>
+                <button id="restartBtn">Играть снова</button>
+            </div>
+        </div>
+        
+        <div id="victoryScreen">
+            <div class="screen-content">
+                <h1>Победа!</h1>
+                <h2>Спасибо за игру!</h2>
+                <p>Вы убили <span id="victoryKills">0</span> зомби</p>
+                <p>Выжили все 10 дней!</p>
+                <button id="victoryRestartBtn">Играть снова</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('gameContainer');
+        const player = document.getElementById('player');
+        const healthDisplay = document.getElementById('health');
+        const maxHealthDisplay = document.getElementById('maxHealth');
+        const healthBarFill = document.getElementById('healthBarFill');
+        const ammoDisplay = document.getElementById('ammo');
+        const killsDisplay = document.getElementById('kills');
+        const timeIndicator = document.getElementById('timeIndicator');
+        const dayCounter = document.getElementById('dayCounter');
+        const shieldIndicator = document.getElementById('shieldIndicator');
+        const joystick = document.getElementById('joystick');
+        const joystickKnob = document.getElementById('joystickKnob');
+        const shootBtn = document.getElementById('shootBtn');
+        const reloadBtn = document.getElementById('reloadBtn');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const victoryScreen = document.getElementById('victoryScreen');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const victoryRestartBtn = document.getElementById('victoryRestartBtn');
+        const finalKillsDisplay = document.getElementById('finalKills');
+        const finalDaysDisplay = document.getElementById('finalDays');
+        const victoryKillsDisplay = document.getElementById('victoryKills');
+
+        let gameRunning = false;
+        let playerX = window.innerWidth / 2;
+        let playerY = window.innerHeight / 2;
+        let playerSpeed = 5;
+        let health = 100;
+        let maxHealth = 100;
+        let ammo = 18;
+        let maxAmmo = 18;
+        let kills = 0;
+        let day = 1;
+        let lastDamageTime = 0;
+        const damageCooldown = 500;
+        let isNight = false;
+        let isBloodMoon = false;
+        let isRaining = false;
+        let isEclipse = false;
+        let zombies = [];
+        let bullets = [];
+        let bonuses = [];
+        let shieldActive = false;
+        let shieldTimeLeft = 0;
+        let shieldInterval;
+        let maxDays = 10;
+        let spawnInterval;
+        let dayNightInterval;
+        let bloodMoonInterval;
+        let bonusInterval;
+        let weatherInterval;
+        let joystickActive = false;
+        let joystickX = 0;
+        let joystickY = 0;
+        let joystickStartX = 0;
+        let joystickStartY = 0;
+        let touchId = null;
+        let isReloading = false;
+        const bulletSpeed = 10;
+        let zombieSpeed = 1.5;
+        let bonusSpawnRate = 8000;
+        let zombieSpawnRate = 8000;
+
+        function initGame() {
+            playerX = window.innerWidth / 2;
+            playerY = window.innerHeight / 2;
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+            
+            health = maxHealth;
+            ammo = maxAmmo;
+            kills = 0;
+            day = 1;
+            isNight = false;
+            isBloodMoon = false;
+            isRaining = false;
+            isEclipse = false;
+            shieldActive = false;
+            shieldTimeLeft = 0;
+            
+            gameContainer.className = '';
+            timeIndicator.textContent = 'День';
+            timeIndicator.className = '';
+            dayCounter.textContent = `День: ${day}`;
+            shieldIndicator.style.display = 'none';
+            player.style.boxShadow = '0 0 10px #3498db';
+            
+            zombies.forEach(zombie => zombie.element.remove());
+            zombies = [];
+            bullets.forEach(bullet => bullet.element.remove());
+            bullets = [];
+            bonuses.forEach(bonus => bonus.element.remove());
+            bonuses = [];
+            
+            clearAllIntervals();
+            updateUI();
+            
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            victoryScreen.style.display = 'none';
+            
+            gameRunning = true;
+            startZombieSpawner();
+            bonusInterval = setInterval(spawnBonus, bonusSpawnRate);
+            startDayNightCycle();
+            gameContainer.focus();
+        }
+        
+        function startZombieSpawner() {
+            clearInterval(spawnInterval);
+            
+            spawnZombieWave();
+            
+            spawnInterval = setInterval(() => {
+                spawnZombieWave();
+            }, zombieSpawnRate);
+        }
+        
+        function spawnZombieWave() {
+            let zombieCount = isBloodMoon ? Math.floor(25 + Math.random() * 6) : 
+                              isNight ? Math.floor(17 + Math.random() * 12) : 
+                              Math.floor(10 + Math.random() * 16);
+            
+            if (isRaining) zombieCount = Math.floor(zombieCount / 1.6);
+            
+            for (let i = 0; i < zombieCount; i++) {
+                setTimeout(() => {
+                    if (gameRunning) spawnZombie();
+                }, i * 100);
+            }
+        }
+        
+        function spawnZombie() {
+            if (!gameRunning) return;
+            
+            const zombie = document.createElement('div');
+            zombie.className = 'zombie';
+            
+            if (isBloodMoon) zombie.classList.add('blood-moon');
+            else if (isNight) zombie.classList.add('night');
+            else if (isEclipse) zombie.classList.add('eclipse');
+            
+            let x, y;
+            let validPosition = false;
+            let attempts = 0;
+            
+            while (!validPosition && attempts < 20) {
+                const edge = Math.floor(Math.random() * 4);
+                
+                switch (edge) {
+                    case 0: x = Math.random() * window.innerWidth; y = -30; break;
+                    case 1: x = window.innerWidth + 30; y = Math.random() * window.innerHeight; break;
+                    case 2: x = Math.random() * window.innerWidth; y = window.innerHeight + 30; break;
+                    case 3: x = -30; y = Math.random() * window.innerHeight; break;
+                }
+                
+                const distance = Math.sqrt(Math.pow(x - playerX, 2) + Math.pow(y - playerY, 2));
+                validPosition = distance > 200;
+                attempts++;
+            }
+            
+            zombie.style.left = x + 'px';
+            zombie.style.top = y + 'px';
+            gameContainer.appendChild(zombie);
+            
+            zombies.push({
+                element: zombie,
+                x: x,
+                y: y,
+                health: isBloodMoon ? 4 : (isEclipse ? 3 : 2),
+                speed: isBloodMoon ? 6.0 : (isNight ? 2.0 : 1.5),
+                spawnTime: Date.now(),
+                lastDirectionChange: 0,
+                targetAngle: Math.random() * Math.PI * 2,
+                avoidanceCooldown: 0,
+                avoidanceFactor: isRaining ? 0.5 : 1.0
+            });
+        }
+        
+        function startDayNightCycle() {
+            clearInterval(dayNightInterval);
+            
+            const dayDuration = 45000;
+            const nightDuration = 70000;
+            
+            dayNightInterval = setInterval(() => {
+                isNight = !isNight;
+                
+                if (isNight) {
+                    gameContainer.classList.add('night');
+                    timeIndicator.textContent = 'Ночь';
+                    timeIndicator.classList.add('night');
+                    
+                    zombies.forEach(zombie => {
+                        zombie.speed = isBloodMoon ? 6.0 : 2.0;
+                    });
+                    
+                    if (day % 5 === 0 && !isBloodMoon) startBloodMoon();
+                    if (Math.random() < 0.1 && !isBloodMoon) startEclipse();
+                } else {
+                    gameContainer.classList.remove('night');
+                    timeIndicator.textContent = 'День';
+                    timeIndicator.classList.remove('night');
+                    day++;
+                    dayCounter.textContent = `День: ${day}`;
+                    
+                    zombies.forEach(zombie => {
+                        zombie.speed = 1.5;
+                    });
+                    
+                    if (day > maxDays) {
+                        victory();
+                        return;
+                    }
+                    
+                    if (isBloodMoon) endBloodMoon();
+                    if (isEclipse) endEclipse();
+                    if (Math.random() < 0.25) startRain();
+                }
+                
+                updateZombiesAppearance();
+                
+                clearInterval(dayNightInterval);
+                startDayNightCycle();
+            }, isNight ? nightDuration : dayDuration);
+        }
+        
+        function startBloodMoon() {
+            isBloodMoon = true;
+            gameContainer.classList.add('blood-moon');
+            timeIndicator.textContent = 'Кровавая Луна!';
+            timeIndicator.classList.add('blood-moon');
+            
+            zombies.forEach(zombie => zombie.speed = 6.0);
+            startZombieSpawner();
+            
+            clearInterval(bloodMoonInterval);
+            bloodMoonInterval = setTimeout(() => {
+                if (isBloodMoon) endBloodMoon();
+            }, 180000);
+            
+            updateZombiesAppearance();
+        }
+        
+        function endBloodMoon() {
+            isBloodMoon = false;
+            gameContainer.classList.remove('blood-moon');
+            timeIndicator.classList.remove('blood-moon');
+            startZombieSpawner();
+            
+            const speed = isNight ? 2.0 : 1.5;
+            zombies.forEach(zombie => zombie.speed = speed);
+            updateZombiesAppearance();
+        }
+        
+        function startRain() {
+            isRaining = true;
+            gameContainer.classList.add('rain');
+            timeIndicator.textContent = 'Дождь';
+            timeIndicator.classList.add('rain');
+            
+            bonusSpawnRate = 15000;
+            clearInterval(bonusInterval);
+            bonusInterval = setInterval(spawnBonus, bonusSpawnRate);
+            startZombieSpawner();
+            
+            setTimeout(() => endRain(), 30000);
+        }
+        
+        function endRain() {
+            isRaining = false;
+            gameContainer.classList.remove('rain');
+            timeIndicator.classList.remove('rain');
+            
+            bonusSpawnRate = 8000;
+            clearInterval(bonusInterval);
+            bonusInterval = setInterval(spawnBonus, bonusSpawnRate);
+            startZombieSpawner();
+        }
+        
+        function startEclipse() {
+            isEclipse = true;
+            gameContainer.classList.add('eclipse');
+            timeIndicator.textContent = 'Затмение!';
+            timeIndicator.classList.add('eclipse');
+            
+            setTimeout(() => endEclipse(), 30000);
+        }
+        
+        function endEclipse() {
+            isEclipse = false;
+            gameContainer.classList.remove('eclipse');
+            timeIndicator.classList.remove('eclipse');
+        }
+        
+        function updateZombiesAppearance() {
+            zombies.forEach(zombie => {
+                zombie.element.className = 'zombie';
+                if (isBloodMoon) zombie.element.classList.add('blood-moon');
+                else if (isNight) zombie.element.classList.add('night');
+                else if (isEclipse) zombie.element.classList.add('eclipse');
+            });
+        }
+        
+        function spawnBonus() {
+            if (!gameRunning || bonuses.length > 3) return;
+            
+            let type = Math.random() < 0.5 ? 'ammo' : 
+                       Math.random() < 0.8 ? 'health' : 'shield';
+            
+            const bonus = document.createElement('div');
+            bonus.className = `bonus ${type}-bonus`;
+            
+            const x = 50 + Math.random() * (window.innerWidth - 100);
+            const y = 50 + Math.random() * (window.innerHeight - 100);
+            
+            bonus.style.left = x + 'px';
+            bonus.style.top = y + 'px';
+            gameContainer.appendChild(bonus);
+            
+            bonuses.push({ element: bonus, x: x, y: y, type: type });
+            
+            setTimeout(() => {
+                if (bonus.parentNode) {
+                    bonus.remove();
+                    bonuses = bonuses.filter(b => b.element !== bonus);
+                }
+            }, 10000);
+        }
+        
+        function activateShield() {
+            if (shieldActive) return;
+            
+            shieldActive = true;
+            shieldTimeLeft = 5000 + Math.random() * 5000;
+            shieldIndicator.style.display = 'block';
+            player.style.boxShadow = '0 0 15px #3498db';
+            
+            clearInterval(shieldInterval);
+            shieldInterval = setInterval(() => {
+                shieldTimeLeft -= 100;
+                if (shieldTimeLeft <= 0) deactivateShield();
+                else shieldIndicator.textContent = `Щит: ${Math.ceil(shieldTimeLeft / 1000)}с`;
+            }, 100);
+        }
+        
+        function deactivateShield() {
+            shieldActive = false;
+            clearInterval(shieldInterval);
+            shieldIndicator.style.display = 'none';
+            player.style.boxShadow = '0 0 10px #3498db';
+        }
+        
+        function findClosestZombie() {
+            if (zombies.length === 0) return null;
+            
+            let closestZombie = zombies[0];
+            let minDistance = Infinity;
+            
+            zombies.forEach(zombie => {
+                const distance = Math.sqrt(Math.pow(zombie.x - playerX, 2) + Math.pow(zombie.y - playerY, 2));
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestZombie = zombie;
+                }
+            });
+            
+            return closestZombie;
+        }
+        
+        function shoot() {
+            if (ammo <= 0 || !gameRunning || isReloading) return;
+            
+            ammo--;
+            updateUI();
+            
+            const bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            bullet.style.left = playerX + 'px';
+            bullet.style.top = playerY + 'px';
+            gameContainer.appendChild(bullet);
+            
+            const closestZombie = findClosestZombie();
+            let angle = closestZombie ? 
+                Math.atan2(closestZombie.y - playerY, closestZombie.x - playerX) :
+                Math.random() * Math.PI * 2;
+            
+            bullets.push({
+                element: bullet,
+                x: playerX,
+                y: playerY,
+                dx: Math.cos(angle) * bulletSpeed,
+                dy: Math.sin(angle) * bulletSpeed
+            });
+            
+            playerX -= Math.cos(angle) * 5;
+            playerY -= Math.sin(angle) * 5;
+        }
+        
+        function reload() {
+            if (ammo === maxAmmo || !gameRunning || isReloading) return;
+            
+            isReloading = true;
+            setTimeout(() => {
+                ammo = maxAmmo;
+                isReloading = false;
+                updateUI();
+            }, 2000);
+        }
+        
+        function checkCollisions() {
+            const now = Date.now();
+            
+            zombies.forEach(zombie => {
+                const distance = Math.sqrt(Math.pow(playerX - zombie.x, 2) + Math.pow(playerY - zombie.y, 2));
+                const isNewZombie = now - zombie.spawnTime < 1000;
+                
+                if (distance < 20 && !isNewZombie && now - lastDamageTime > damageCooldown) {
+                    if (shieldActive) return;
+                    
+                    const damage = isEclipse ? 5 + Math.floor(Math.random() * 6) :
+                                  isBloodMoon ? 5 + Math.floor(Math.random() * 6) : 
+                                  isNight ? 3 + Math.floor(Math.random() * 5) : 
+                                  1 + Math.floor(Math.random() * 3);
+                    
+                    health -= damage;
+                    lastDamageTime = now;
+                    updateUI();
+                    
+                    player.style.backgroundColor = '#ff0000';
+                    setTimeout(() => {
+                        player.style.backgroundColor = '#3498db';
+                    }, 200);
+                    
+                    if (health <= 0) gameOver();
+                }
+            });
+            
+            bullets.forEach((bullet, bulletIndex) => {
+                let hit = false;
+                
+                zombies.forEach((zombie, zombieIndex) => {
+                    if (hit) return;
+                    
+                    const distance = Math.sqrt(Math.pow(bullet.x - zombie.x, 2) + Math.pow(bullet.y - zombie.y, 2));
+                    
+                    if (distance < 18) {
+                        hit = true;
+                        bullet.element.remove();
+                        bullets.splice(bulletIndex, 1);
+                        
+                        zombie.health--;
+                        
+                        if (zombie.health <= 0) {
+                            zombie.element.remove();
+                            zombies.splice(zombieIndex, 1);
+                            kills++;
+                            updateUI();
+                        }
+                    }
+                });
+            });
+            
+            bonuses.forEach((bonus, index) => {
+                const distance = Math.sqrt(Math.pow(playerX - bonus.x, 2) + Math.pow(playerY - bonus.y, 2));
+                
+                if (distance < 25) {
+                    if (bonus.type === 'health') {
+                        const healAmount = Math.floor((maxHealth - health) * (0.2 + Math.random() * 0.6));
+                        health = Math.min(health + healAmount, maxHealth);
+                    } else if (bonus.type === 'ammo') {
+                        reload();
+                    } else if (bonus.type === 'shield') {
+                        if (Math.random() < 0.25) activateShield();
+                    }
+                    
+                    bonus.element.remove();
+                    bonuses = bonuses.filter(b => b.element !== bonus.element);
+                    updateUI();
+                }
+            });
+        }
+        
+        function updateUI() {
+            healthDisplay.textContent = health;
+            maxHealthDisplay.textContent = maxHealth;
+            healthBarFill.style.width = `${(health / maxHealth) * 100}%`;
+            ammoDisplay.textContent = ammo;
+            killsDisplay.textContent = kills;
+            
+            if (shieldActive) {
+                shieldIndicator.textContent = `Щит: ${Math.ceil(shieldTimeLeft / 1000)}с`;
+            }
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            clearAllIntervals();
+            finalKillsDisplay.textContent = kills;
+            finalDaysDisplay.textContent = day - 1;
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        function victory() {
+            gameRunning = false;
+            clearAllIntervals();
+            victoryKillsDisplay.textContent = kills;
+            victoryScreen.style.display = 'flex';
+        }
+        
+        function clearAllIntervals() {
+            clearInterval(spawnInterval);
+            clearInterval(dayNightInterval);
+            clearInterval(bloodMoonInterval);
+            clearInterval(shieldInterval);
+            clearInterval(bonusInterval);
+            clearInterval(weatherInterval);
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            if (joystickActive) {
+                const dx = joystickX - joystickStartX;
+                const dy = joystickY - joystickStartY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 10) {
+                    const angle = Math.atan2(dy, dx);
+                    playerX += Math.cos(angle) * playerSpeed;
+                    playerY += Math.sin(angle) * playerSpeed;
+                }
+            }
+            
+            playerX = Math.max(15, Math.min(window.innerWidth - 15, playerX));
+            playerY = Math.max(15, Math.min(window.innerHeight - 15, playerY));
+            
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+            
+            const now = Date.now();
+            
+            zombies.forEach(zombie => {
+                const dx = playerX - zombie.x;
+                const dy = playerY - zombie.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                let targetAngle = Math.atan2(dy, dx);
+                
+                if (now - zombie.lastDirectionChange > 1000) {
+                    zombie.targetAngle = targetAngle + (Math.random() - 0.5) * Math.PI/2;
+                    zombie.lastDirectionChange = now;
+                }
+                
+                targetAngle = zombie.targetAngle;
+                
+                let avoidanceAngle = 0;
+                if (now - zombie.avoidanceCooldown > 500) {
+                    bullets.forEach(bullet => {
+                        const bulletDistance = Math.sqrt(Math.pow(bullet.x - zombie.x, 2) + Math.pow(bullet.y - zombie.y, 2));
+                        if (bulletDistance < 100) {
+                            avoidanceAngle = Math.atan2(bullet.y - zombie.y, bullet.x - zombie.x) + Math.PI;
+                            zombie.avoidanceCooldown = now;
+                        }
+                    });
+                }
+                
+                const finalAngle = avoidanceAngle !== 0 ? 
+                    avoidanceAngle * zombie.avoidanceFactor + targetAngle * (1 - zombie.avoidanceFactor) : 
+                    targetAngle;
+                
+                zombie.x += Math.cos(finalAngle) * zombie.speed;
+                zombie.y += Math.sin(finalAngle) * zombie.speed;
+                
+                const visualAngle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+                zombie.element.style.transform = `translate(-50%, -50%) rotate(${visualAngle}deg)`;
+                
+                zombie.element.style.left = zombie.x + 'px';
+                zombie.element.style.top = zombie.y + 'px';
+            });
+            
+            bullets.forEach((bullet, index) => {
+                bullet.x += bullet.dx;
+                bullet.y += bullet.dy;
+                
+                bullet.element.style.left = bullet.x + 'px';
+                bullet.element.style.top = bullet.y + 'px';
+                
+                if (bullet.x < 0 || bullet.x > window.innerWidth || 
+                    bullet.y < 0 || bullet.y > window.innerHeight) {
+                    bullet.element.remove();
+                    bullets.splice(index, 1);
+                }
+            });
+            
+            checkCollisions();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function setupEventListeners() {
+            joystickArea.addEventListener('touchstart', (e) => {
+                if (!gameRunning) return;
+                
+                const touch = e.touches[0];
+                joystickActive = true;
+                touchId = touch.identifier;
+                joystickStartX = touch.clientX;
+                joystickStartY = touch.clientY;
+                
+                joystick.style.left = touch.clientX + 'px';
+                joystick.style.top = touch.clientY + 'px';
+                joystick.style.display = 'block';
+                
+                joystickKnob.style.left = '50px';
+                joystickKnob.style.top = '50px';
+            });
+            
+            joystickArea.addEventListener('touchmove', (e) => {
+                if (!gameRunning || !joystickActive) return;
+                
+                for (let i = 0; i < e.touches.length; i++) {
+                    if (e.touches[i].identifier === touchId) {
+                        const touch = e.touches[i];
+                        const dx = touch.clientX - joystickStartX;
+                        const dy = touch.clientY - joystickStartY;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const limitedDistance = Math.min(distance, 50);
+                        
+                        if (distance > 0) {
+                            const angle = Math.atan2(dy, dx);
+                            const knobX = 50 + Math.cos(angle) * limitedDistance;
+                            const knobY = 50 + Math.sin(angle) * limitedDistance;
+                            
+                            joystickKnob.style.left = knobX + 'px';
+                            joystickKnob.style.top = knobY + 'px';
+                        }
+                        
+                        joystickX = touch.clientX;
+                        joystickY = touch.clientY;
+                        break;
+                    }
+                }
+            });
+            
+            joystickArea.addEventListener('touchend', (e) => {
+                if (!gameRunning) return;
+                
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchId) {
+                        joystickActive = false;
+                        joystick.style.display = 'none';
+                        touchId = null;
+                        break;
+                    }
+                }
+            });
+            
+            shootBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                shoot();
+            });
+            
+            reloadBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                reload();
+            });
+            
+            startBtn.addEventListener('click', () => {
+                initGame();
+                gameLoop();
+            });
+            
+            restartBtn.addEventListener('click', () => {
+                initGame();
+                gameLoop();
+            });
+            
+            victoryRestartBtn.addEventListener('click', () => {
+                initGame();
+                gameLoop();
+            });
+            
+            window.addEventListener('resize', () => {
+                if (gameRunning) {
+                    playerX = Math.max(15, Math.min(window.innerWidth - 15, playerX));
+                    playerY = Math.max(15, Math.min(window.innerHeight - 15, playerY));
+                    player.style.left = playerX + 'px';
+                    player.style.top = playerY + 'px';
+                }
+            });
+        }
+        
+        function initialize() {
+            setupEventListeners();
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+        }
+        
+        initialize();
+    </script>
+</body>
+</html>
